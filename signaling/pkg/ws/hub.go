@@ -1,7 +1,7 @@
 package ws
 
 import (
-	"fmt"
+	"log"
 )
 
 type Hub struct {
@@ -26,19 +26,16 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.register:
 			// register client to the hub
-			fmt.Printf("room: %s, user:%s join", c.Room, c.ID)
 			room := h.rooms[c.Room]
 			if room == nil {
 				room = make(map[*Client]bool)
 				h.rooms[c.Room] = room
 			}
 			h.rooms[c.Room][c] = true
-			// and also notify the room
-			// TODO
 
 		case c := <-h.unregister:
 			// unregister
-			fmt.Printf("room: %s, user:%s leave", c.Room, c.ID)
+			log.Printf("room: %s, user:%s leave\n", c.Room, c.ID)
 			room := h.rooms[c.Room]
 			// will this gonn happen??
 			if room != nil {
@@ -48,9 +45,6 @@ func (h *Hub) Run() {
 
 					if len(room) == 0 {
 						delete(h.rooms, c.Room)
-					} else {
-						// notify the room
-						// TODO
 					}
 				}
 			}
@@ -58,17 +52,20 @@ func (h *Hub) Run() {
 		case m := <-h.broadcast:
 			room := h.rooms[m.from.Room]
 			for s := range room {
-				select {
-				case s.send <- m.payload:
-				default:
-					close(s.send)
-					delete(room, s)
-					if len(room) == 0 {
-						delete(h.rooms, m.from.Room)
+				// curr := m.from == s
+				// fmt.Printf("%t \n", isthisme)
+				if m.from != s {
+					select {
+					case s.send <- m.payload:
+					default:
+						close(s.send)
+						delete(room, s)
+						if len(room) == 0 {
+							delete(h.rooms, m.from.Room)
+						}
 					}
 				}
 			}
 		}
-
 	}
 }

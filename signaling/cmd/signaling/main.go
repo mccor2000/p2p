@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/mccor2000/torrent-together/internal/ws"
+	"github.com/mccor2000/torrent-together/signaling/pkg/ws"
 )
 
 func main() {

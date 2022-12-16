@@ -31,6 +31,6 @@ func HandleWS(w http.ResponseWriter, r *http.Request, h *Hub, roomId string) {
 
 	h.register <- c
 
-	go c.WritePump()
-	go c.ReadPump()
+	go c.writePump()
+	go c.readPump()
 }

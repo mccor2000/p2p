@@ -19,7 +19,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 512
+	maxMessageSize = 10000
 )
 
 var (
@@ -36,7 +36,7 @@ type Client struct {
 	send chan []byte
 }
 
-func (c *Client) WritePump() {
+func (c *Client) writePump() {
 	defer func() {
 		c.conn.Close()
 	}()
@@ -47,29 +47,32 @@ func (c *Client) WritePump() {
 		case msg, ok := <-c.send:
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Printf("err get message from channel")
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				log.Printf("err writing message %v\n", err)
 				return
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("err ping %v\n", err)
 				return
 			}
 		}
 	}
 }
 
-func (c *Client) ReadPump() {
+func (c *Client) readPump() {
 	defer func() {
 		c.h.unregister <- c
 		c.conn.Close()
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	// c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	// c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
 		_, data, err := c.conn.ReadMessage()
