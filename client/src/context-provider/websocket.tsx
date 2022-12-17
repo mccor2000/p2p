@@ -1,10 +1,10 @@
 import WebSocket from "isomorphic-ws";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { AuthContext, User } from "./define-yourself";
 
-export type Listener<Data = unknown> = {
+export type Listener = {
     opcode: string;
     handler: ({ data, user }: { data: any, user: User }) => void;
 };
@@ -13,7 +13,7 @@ export type Connection = {
     user: User,
     ws: WebSocket,
     send: (opcode: string, data: any) => void
-    addListener: (opcode: string, handler: (msg: {data: any, user: User}) => void) => () => void
+    addListener: (opcode: string, handler: (msg: { data: any, user: User }) => void) => () => void
 }
 
 export const connect = (roomId: string, user: User): Promise<Connection> => new Promise((resolve, reject) => {
@@ -24,19 +24,23 @@ export const connect = (roomId: string, user: User): Promise<Connection> => new 
         user,
         ws,
         send: (opcode: string, data: any) => {
-            ws.send(JSON.stringify({ opcode, data, user }))
+            const msg = JSON.stringify({ opcode, data, user })
+            ws.send(msg)
         },
         addListener: (opcode: string, handler: ({ data, user }: { data: any, user: User }) => void) => {
             const listener = { opcode, handler }
             listeners.push(listener);
-
-            // unsubcribe
             return () => listeners.splice(listeners.indexOf(listener), 1);
         }
     }
 
     ws.addEventListener("open", () => {
+        console.log('ws connected')
         resolve(connection)
+    })
+    ws.addEventListener("close", ({ wasClean, reason, target, code, type }) => {
+        console.log(`ws closed: ${reason}, code: ${code}, type: ${type}`, wasClean)
+        target.close()
     })
 
     ws.addEventListener("message", ({ data }: { data: any }) => {
@@ -48,36 +52,33 @@ export const connect = (roomId: string, user: User): Promise<Connection> => new 
 })
 
 export const WebSocketContext = createContext<{
-    conn?: Connection,
-}>({})
+    connected: boolean
+    channel?: Connection,
+}>({
+    connected: false
+})
 
 export const WebSocketProvider: React.FC = ({ children }) => {
     const { user } = useContext(AuthContext)
     const { roomId } = useParams()
-    const [conn, setConn] = useState<Connection>()
+    const conn = useRef<Connection>()
+    const [connected, setConnected] = useState<boolean>(false)
 
     useEffect(() => {
-        if (conn || !user) {
-            return
-        }
+        if (!user) return
 
-        connect(roomId!, user)
-            .then(ws => {
-                setConn(ws)
-            })
-            .catch(e => {
-                console.log('err connect websocket', e)
-            })
-            .finally(() => {
-                console.log('connect websocket')
-            })
-    }, [conn, user])
+        (async () => {
+            conn.current = await connect(roomId!, user)
+            setConnected(true)
+        })()
+    }, [user])
 
     return (
         <WebSocketContext.Provider
             value={useMemo(() => ({
-                conn
-            }), [conn])}
+                connected,
+                channel: conn.current
+            }), [conn.current])}
         >
             {children}
         </WebSocketContext.Provider>)

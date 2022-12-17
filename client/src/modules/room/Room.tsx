@@ -1,15 +1,11 @@
-import { createRef } from "react";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import YouTube from "react-youtube";
 import styled from 'styled-components'
+
 import { YoutubePlayer } from "../../components/Player";
 
-import config from "../../config";
-
-import { WebSocketContext, AuthContext } from "../../context-provider";
-import { useWebRTC } from "./useWebRTC";
-import { useWebSocket } from "./useWebSocket";
+import { useRoom } from "./useRoom";
+import { useSignaling } from "./useSignaling";
 
 const Container = styled.div`
     display: flex;
@@ -39,29 +35,53 @@ const Video = styled.video`
 
 const Room = () => {
   const { roomId } = useParams()
-  const { conn } = useWebSocket()
-  const { makeCall } = useWebRTC(conn)
+  const { connected, channel } = useSignaling()
+  const { peers } = useRoom(channel)
+  const [mems, setMems] = useState<{ id: string, displayName: string }[]>([])
 
-  const [videoUrl, setVideoUrl] = useState<string>("")
-  const [videoID, setVideoID] = useState<string>("")
+  useEffect(() => {
+    if (!channel) return
 
-  return (
+    // some how this shit blocking 
+    // the WebRTC connection for a while?????
+
+    // channel.addListener('user-join', ({ user }) => {
+    //   !mems.includes(user) && setMems(_mems => [..._mems, user])
+    // })
+    // channel.addListener('user-leave', ({ user }) => {
+    //   mems.includes(user) && setMems(_mems => _mems.filter(m => m.id === user.id))
+    // })
+
+    channel.send('user-join', {})
+
+    return () => {
+      channel.send('user-leave', {})
+      channel.ws.close()
+    }
+  }, [channel])
+
+  // const [videoUrl, setVideoUrl] = useState<string>("")
+  // const [videoID, setVideoID] = useState<string>("")
+
+  return connected ? (
     <>
       <h1>room {roomId}</h1>
       <Container>
         <LeftRow>
+          <h2>peers</h2>
+          {[...mems, { id: channel?.user.id, displayName: channel?.user.displayName }].map(p => <h3 key={p.id}>{p.displayName}</h3>)}
           {/* <Video autoPlay playsInline ref={localMedia} />
           <Video autoPlay playsInline ref={remoteMedia} /> */}
         </LeftRow>
         <RightRow>
-          <YoutubePlayer id={videoID} />
+          {/* <YoutubePlayer id={videoID} />
           <input type="text" placeholder="video link" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
-          <button onClick={() => { setVideoID(videoUrl.split("=")[1]) }}>Load video</button>
+          <button onClick={() => { setVideoID(videoUrl.split("=")[1]) }}>Load video</button> */}
         </RightRow>
       </Container>
-      <button onClick={() => makeCall()}>make call</button>
+      {/* <button onClick={() => makeCall()}>make call</button> */}
     </>
-  );
+  ) : <>connecting..</>
 };
 
 export default Room;

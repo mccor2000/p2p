@@ -1,6 +1,6 @@
 import { useContext } from "react"
 import { WebSocketContext } from "../../context-provider"
 
-export const useWebSocket = () => {
+export const useSignaling = () => {
     return useContext(WebSocketContext)
 }

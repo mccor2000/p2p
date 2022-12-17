@@ -6,7 +6,6 @@ import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generato
 export type User = {
     id: string;
     displayName: string;
-    currentRoom?: string;
 };
 
 export const AuthContext = createContext<{
