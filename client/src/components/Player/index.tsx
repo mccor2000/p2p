@@ -71,4 +71,5 @@ const Player = ({ torrentId }: { torrentId: string }) => {
   );
 };
 
-export default Player;
+// export default Player;
+export * from "./YoutubePlayer"

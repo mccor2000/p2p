@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
-import { AuthContext } from "./modules/auth";
+import { AuthContext } from "./context-provider/define-yourself";
 
 const Home = () => {
   const { user } = useContext(AuthContext);
@@ -10,7 +10,7 @@ const Home = () => {
 
   return user ? (
     <>
-      <h1>welcome, {user?.username}</h1>
+      <h1>welcome, {user?.displayName}</h1>
       <div>
         <input type="text" placeholder="room id" value={room} onChange={(e) => {
           e.preventDefault()
