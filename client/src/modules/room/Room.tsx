@@ -60,9 +60,6 @@ const Room = () => {
     }
   }, [channel])
 
-  // const [videoUrl, setVideoUrl] = useState<string>("")
-  // const [videoID, setVideoID] = useState<string>("")
-
   return connected ? (
     <>
       <h1>room {roomId}</h1>
@@ -79,7 +76,6 @@ const Room = () => {
           <button onClick={() => { setVideoID(videoUrl.split("=")[1]) }}>Load video</button> */}
         </RightRow>
       </Container>
-      {/* <button onClick={() => makeCall()}>make call</button> */}
     </>
   ) : <>connecting..</>
 };
